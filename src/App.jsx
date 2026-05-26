@@ -36,10 +36,10 @@ const MILESTONES = [
   { subs:0,        label:"Nobody",          color:"#888",    badge:"👤", perk:"Start your journey" },
   { subs:100,      label:"Starter",         color:"#a0522d", badge:"🌱", perk:"You're getting noticed!" },
   { subs:1000,     label:"Rising Star",     color:"#4a9eff", badge:"⭐", perk:"Eligible for monetisation" },
-  { subs:10000,    label:"Silver Creator",  color:"#aaa",    badge:"🥈", perk:"Silver Play Button! +10% views" },
-  { subs:100000,   label:"Gold Creator",    color:"#ffd700", badge:"🥇", perk:"Gold Play Button! Eligible for verification" },
-  { subs:1000000,  label:"Diamond Creator", color:"#b9f2ff", badge:"💎", perk:"Diamond Play Button! Brand deals" },
-  { subs:10000000, label:"LEGEND",          color:"#ff4444", badge:"👑", perk:"Ruby Button! YOU ARE YOUTUBE" },
+  { subs:100000,    label:"Silver Creator",  color:"#aaa",    badge:"🥈", perk:"Silver Play Button! +10% views and eligible for verification" },
+  { subs:1000000,   label:"Gold Creator",    color:"#ffd700", badge:"🥇", perk:"Gold Play Button! " },
+  { subs:10000000,  label:"Diamond Creator", color:"#b9f2ff", badge:"💎", perk:"Diamond Play Button! Brand deals" },
+  { subs:100000000, label:"LEGEND",          color:"#ff4444", badge:"👑", perk:"Ruby Button! YOU ARE YOUTUBE" },
 ];
 
 const UPGRADES = [
