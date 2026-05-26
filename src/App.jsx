@@ -36,8 +36,8 @@ const MILESTONES = [
   { subs:0,        label:"Nobody",          color:"#888",    badge:"👤", perk:"Start your journey" },
   { subs:100,      label:"Starter",         color:"#a0522d", badge:"🌱", perk:"You're getting noticed!" },
   { subs:1000,     label:"Rising Star",     color:"#4a9eff", badge:"⭐", perk:"Eligible for monetisation" },
-  { subs:100000,    label:"Silver Creator",  color:"#aaa",    badge:"🥈", perk:"Silver Play Button! +10% views and eligible for verification" },
-  { subs:1000000,   label:"Gold Creator",    color:"#ffd700", badge:"🥇", perk:"Gold Play Button! " },
+  { subs:100000,    label:"Silver Creator",  color:"#aaa",    badge:"🥈", perk:"Silver Play Button! +10% views" },
+  { subs:1000000,   label:"Gold Creator",    color:"#ffd700", badge:"🥇", perk:"Gold Play Button! Eligible for verification" },
   { subs:10000000,  label:"Diamond Creator", color:"#b9f2ff", badge:"💎", perk:"Diamond Play Button! Brand deals" },
   { subs:100000000, label:"LEGEND",          color:"#ff4444", badge:"👑", perk:"Ruby Button! YOU ARE YOUTUBE" },
 ];
@@ -506,7 +506,177 @@ function VerifiedModal({ suspicion, everSuspended, onApply, onClose }) {
   );
 }
 
-// ── Category Picker ────────────────────────────────────────────────────────
+// ── Expose System ──────────────────────────────────────────────────────────
+const DRAMA_CHANNELS = ["yt_drama_tea","TruthSeeker","ExposedDaily","TheReceiptsChan","CreatorWatch","DramaAlert2","SpillItSis","YouTubeInsider"];
+const EXPOSE_TITLES = [
+  "Exposing the TRUTH behind [Channel]...",
+  "The dark side of [Channel] nobody talks about",
+  "[Channel] is NOT who you think they are",
+  "I need to talk about [Channel] (it's bad)",
+  "PROOF that [Channel] has been lying to you",
+  "The [Channel] scandal everyone is ignoring",
+  "[Channel] fans need to see this...",
+];
+// severity: "minor" | "moderate" | "severe"
+function getExposeDetails(boughtSubs, everSuspended, subs) {
+  if (everSuspended) return { severity:"severe",  true:true,  subLossPct: 0.35 + Math.random()*0.15, desc:"Proven bot scandal — suspension on record", investigationChance: Math.min(0.8, 0.4 + subs/5000000) };
+  if (boughtSubs)    return { severity:"moderate", true:true,  subLossPct: 0.10 + Math.random()*0.10, desc:"Unverified botting allegations", investigationChance: Math.min(0.4, 0.1 + subs/5000000) };
+  return               { severity:"minor",    true:false, subLossPct: 0.02 + Math.random()*0.05, desc:"False allegations from a hater", investigationChance: 0 };
+}
+
+// ── Expose Modal ───────────────────────────────────────────────────────────
+function ExposeModal({ expose, subs, onRespond, onBan }) {
+  const [responded, setResponded] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [investigating, setInvestigating] = useState(false);
+  const [outcome, setOutcome] = useState(null);
+
+  const dramaChannel = expose.dramaChannel;
+  const title = expose.title;
+  const exposeViews = expose.exposeViews;
+  const details = expose.details;
+
+  const severityColor = details.severity==="severe" ? "#ff2222" : details.severity==="moderate" ? "#ff8c00" : "#ffd700";
+  const severityLabel = details.severity==="severe" ? "🔴 SEVERE" : details.severity==="moderate" ? "🟠 MODERATE" : "🟡 MINOR";
+
+  const handleResponse = (type) => {
+    setResponse(type);
+    setResponded(true);
+
+    // Check for YouTube investigation on severe/moderate
+    if (details.investigationChance > 0 && Math.random() < details.investigationChance) {
+      setInvestigating(true);
+      setTimeout(() => {
+        // Big channels get banned, small ones just get a warning
+        if (subs > 500000 && details.severity === "severe") {
+          setOutcome("ban");
+        } else {
+          setOutcome("warning");
+        }
+      }, 3000);
+    } else {
+      setOutcome("survived");
+    }
+  };
+
+  if (outcome === "ban") return (
+    <Modal uncloseable>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:52, marginBottom:8 }}>🔴</div>
+        <div style={{ fontSize:18, fontWeight:800, color:"#ff2222", marginBottom:8 }}>YouTube Investigation Complete</div>
+        <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.7 }}>
+          Following the viral expose video and subsequent public outcry, YouTube has conducted an investigation and found sufficient evidence of artificial subscriber manipulation. Your channel has been <b style={{ color:"#ff2222" }}>permanently terminated</b>.
+        </div>
+        <button onClick={onBan} style={{ width:"100%", background:"linear-gradient(135deg,#ff2222,#990000)", border:"none", borderRadius:10, padding:"13px", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer" }}>
+          Accept fate 💀
+        </button>
+      </div>
+    </Modal>
+  );
+
+  if (outcome === "warning") return (
+    <Modal onClose={() => onRespond(response, details.subLossPct, false)}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:52, marginBottom:8 }}>⚠️</div>
+        <div style={{ fontSize:16, fontWeight:800, color:"#ff8c00", marginBottom:8 }}>YouTube Strike Issued</div>
+        <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.6 }}>
+          YouTube reviewed the allegations and issued a formal strike on your channel. You kept your channel but lost subscribers and advertiser trust has dropped.
+        </div>
+        <button onClick={() => onRespond(response, details.subLossPct, false)} style={{ width:"100%", background:"linear-gradient(135deg,#ff8c00,#cc6600)", border:"none", borderRadius:10, padding:"13px", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer" }}>
+          Take the L and move on
+        </button>
+      </div>
+    </Modal>
+  );
+
+  if (investigating) return (
+    <Modal uncloseable>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:52, marginBottom:8, animation:"pulse 1s infinite" }}>🔍</div>
+        <div style={{ fontSize:16, fontWeight:800, color:"#ff8c00", marginBottom:8 }}>YouTube is Investigating...</div>
+        <div style={{ fontSize:12, color:"#666", lineHeight:1.6 }}>
+          The expose video went too viral to ignore. YouTube's Trust & Safety team has opened a formal investigation into your channel.
+        </div>
+      </div>
+    </Modal>
+  );
+
+  if (responded) return (
+    <Modal onClose={() => onRespond(response, details.subLossPct * (response==="apologise" ? 0.6 : response==="lawyer" ? 0.1 : response==="respond" ? 0.7 : 1), false)}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:44, marginBottom:8 }}>
+          {response==="ignore"?"😤":response==="respond"?"🎬":response==="apologise"?"🙏":"⚖️"}
+        </div>
+        <div style={{ fontSize:15, fontWeight:800, color:"#fff", marginBottom:8 }}>
+          {response==="ignore" ? "You ignored it" : response==="respond" ? "Response video posted" : response==="apologise" ? "Public apology made" : "Lawyers sent a takedown"}
+        </div>
+        <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.6 }}>
+          {response==="ignore" && "The drama is dying down. You lost some subscribers but the community is moving on."}
+          {response==="respond" && "Your response video got traction! Some fans came back. Still lost subs though."}
+          {response==="apologise" && "The apology helped — most fans forgave you quickly. Smaller sub loss."}
+          {response==="lawyer" && "The video got taken down. Barely any subs lost — but the internet noticed and it might come back."}
+        </div>
+        <div style={{ background:"#1a1a1a", border:"1px solid #222", borderRadius:12, padding:16, marginBottom:20 }}>
+          <div style={{ fontSize:11, color:"#888", marginBottom:4 }}>Subscribers lost</div>
+          <div style={{ fontSize:28, fontWeight:800, color:"#ff4444" }}>
+            –{fmt(Math.floor(subs * (response==="apologise"?details.subLossPct*0.6:response==="lawyer"?details.subLossPct*0.1:response==="respond"?details.subLossPct*0.7:details.subLossPct)))}
+          </div>
+        </div>
+        <button onClick={() => onRespond(response, details.subLossPct * (response==="apologise"?0.6:response==="lawyer"?0.1:response==="respond"?0.7:1), false)}
+          style={{ width:"100%", background:"linear-gradient(135deg,#333,#222)", border:"none", borderRadius:10, padding:"12px", color:"#aaa", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+          Continue
+        </button>
+      </div>
+    </Modal>
+  );
+
+  return (
+    <Modal uncloseable>
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+          <span style={{ fontSize:10, fontWeight:800, color:severityColor, background:severityColor+"22", border:`1px solid ${severityColor}44`, borderRadius:6, padding:"2px 8px", letterSpacing:1 }}>{severityLabel}</span>
+          <span style={{ fontSize:10, color: details.true?"#ff4444":"#4caf50", fontWeight:700 }}>{details.true?"● TRUE":"● FALSE"}</span>
+        </div>
+        <div style={{ fontSize:11, color:"#666", marginBottom:6 }}>📺 {dramaChannel} just posted:</div>
+        <div style={{ fontSize:15, fontWeight:800, color:"#fff", lineHeight:1.4, marginBottom:12 }}>"{title}"</div>
+        <div style={{ display:"flex", gap:12, fontSize:11, color:"#888", marginBottom:16 }}>
+          <span>👁 {fmt(exposeViews)} views</span>
+          <span>🔥 Trending #1 in Drama</span>
+        </div>
+        <div style={{ background:"#1a1a1a", border:`1px solid ${severityColor}33`, borderRadius:10, padding:12, fontSize:11, color:"#aaa", lineHeight:1.6, marginBottom:16 }}>
+          <b style={{ color:severityColor }}>Allegation:</b> {details.desc}<br/>
+          <b style={{ color:"#888" }}>Subscribers at risk:</b> <span style={{ color:"#ff4444" }}>–{fmt(Math.floor(subs * details.subLossPct))} to –{fmt(Math.floor(subs * (details.subLossPct + 0.05)))}</span>
+          {details.investigationChance > 0 && <><br/><b style={{ color:"#ff8c00" }}>⚠ YouTube investigation risk: {Math.round(details.investigationChance*100)}%</b></>}
+        </div>
+      </div>
+      <div style={{ fontSize:11, fontWeight:700, color:"#888", marginBottom:10, letterSpacing:1 }}>HOW DO YOU RESPOND?</div>
+      <div style={{ display:"grid", gap:8 }}>
+        {[
+          { id:"ignore",   icon:"😤", label:"Ignore it",          sub:"Least recovery, but no cost" },
+          { id:"respond",  icon:"🎬", label:"Post a response",    sub:"Recover 30% of lost subs" },
+          { id:"apologise",icon:"🙏", label:"Public apology",     sub:"Recover 40% — best for true claims" },
+          { id:"lawyer",   icon:"⚖️", label:"Send lawyers",       sub:"90% sub recovery — costs $5,000", cost:5000 },
+        ].map(opt => (
+          <button key={opt.id} onClick={() => handleResponse(opt.id)} style={{
+            background:"#1a1a1a", border:"1px solid #2a2a2a", borderRadius:10,
+            padding:"10px 14px", cursor:"pointer", textAlign:"left",
+            display:"flex", alignItems:"center", gap:12,
+            transition:"all 0.15s",
+          }}
+            onMouseEnter={e=>{ e.currentTarget.style.borderColor="#ff0000"; e.currentTarget.style.background="#ff000011"; }}
+            onMouseLeave={e=>{ e.currentTarget.style.borderColor="#2a2a2a"; e.currentTarget.style.background="#1a1a1a"; }}
+          >
+            <span style={{ fontSize:22 }}>{opt.icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:"#fff" }}>{opt.label} {opt.cost && <span style={{ color:"#ff4444", fontSize:10 }}>($5K)</span>}</div>
+              <div style={{ fontSize:10, color:"#555", marginTop:2 }}>{opt.sub}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
 function CategoryPickerModal({ onSelect, onClose }) {
   const [selected, setSelected] = useState(null);
   return (
@@ -647,6 +817,14 @@ export default function YouTubeSimulator() {
   // Copyright system
   const [copyrightEvent, setCopyrightEvent] = useState(null); // { lost, song }
 
+  // Expose system
+  const [exposeEvent, setExposeEvent] = useState(null);
+  const [boughtSubs, setBoughtSubs] = useState(false);
+  const exposeActiveRef = useRef(false);
+  const lastExposeRef = useRef(0);
+  const boughtSubsRef = useRef(false);
+  const everSuspendedRef = useRef(false);
+
   const [prevMilestoneSubs, setPrevMilestoneSubs] = useState(0);
   const passiveRef = useRef(null);
   const cooldownRef = useRef(null);
@@ -670,6 +848,9 @@ export default function YouTubeSimulator() {
   useEffect(() => { suspendedRef.current = suspended; }, [suspended]);
   useEffect(() => { bannedRef.current = banned; }, [banned]);
   useEffect(() => { copyrightActiveRef.current = !!copyrightEvent; }, [copyrightEvent]);
+  useEffect(() => { exposeActiveRef.current = !!exposeEvent; }, [exposeEvent]);
+  useEffect(() => { boughtSubsRef.current = boughtSubs; }, [boughtSubs]);
+  useEffect(() => { everSuspendedRef.current = everSuspended; }, [everSuspended]);
 
   const addNotif = useCallback((msg, type="info") => {
     const id = Date.now() + Math.random();
@@ -723,6 +904,23 @@ export default function YouTubeSimulator() {
             setMoney(m => Math.max(0, m - lost));
             return vids.map(v => v.id === target.id ? { ...v, revenue:0, copyrightClaimed:true } : v);
           });
+        }
+      }
+
+      // Expose event — scales with subs, only if has audience worth exposing
+      const timeSinceExpose = now - lastExposeRef.current;
+      if (subsRef.current > 10000 && !exposeActiveRef.current && timeSinceExpose > 90000) {
+        // Base 0.5% at 10K, up to 4% at 5M+ — higher if bought subs
+        const baseExposeChance = Math.min(0.04, 0.005 + (subsRef.current / 5000000) * 0.035);
+        const exposeChance = boughtSubsRef.current ? baseExposeChance * 2.5 : baseExposeChance;
+        if (Math.random() < exposeChance) {
+          const details = getExposeDetails(boughtSubsRef.current, everSuspendedRef.current, subsRef.current);
+          const title = EXPOSE_TITLES[Math.floor(Math.random()*EXPOSE_TITLES.length)];
+          const dramaChannel = DRAMA_CHANNELS[Math.floor(Math.random()*DRAMA_CHANNELS.length)];
+          const exposeViews = Math.floor(subsRef.current * (0.1 + Math.random() * 0.4));
+          exposeActiveRef.current = true;
+          lastExposeRef.current = now;
+          setExposeEvent({ title, dramaChannel, exposeViews, details });
         }
       }
 
@@ -833,6 +1031,7 @@ export default function YouTubeSimulator() {
     if (money < pkg.cost || !monetised) return;
     setMoney(m => m - pkg.cost);
     setSubs(s => s + pkg.subs);
+    setBoughtSubs(true);
     const newSuspicion = Math.min(100, suspicionRef.current + pkg.risk);
     setSuspicion(newSuspicion);
     suspicionRef.current = newSuspicion;
@@ -847,6 +1046,15 @@ export default function YouTubeSimulator() {
       setTimeout(() => setSuspended(true), 1500);
       addNotif("⚠️ Suspicious activity detected!", "danger");
     }
+  };
+
+  const handleExposeRespond = (responseType, subLossPct, triggerBan) => {
+    if (triggerBan) { setBanned(true); setExposeEvent(null); exposeActiveRef.current = false; return; }
+    const lost = Math.floor(subs * subLossPct);
+    setSubs(s => Math.max(0, s - lost));
+    setExposeEvent(null);
+    exposeActiveRef.current = false;
+    addNotif(`📉 Lost ${fmt(lost)} subs from the drama`, "danger");
   };
 
   const handleAppeal = () => {
@@ -866,7 +1074,8 @@ export default function YouTubeSimulator() {
     setShowMonetiseModal(false); setShowVerifiedModal(false);
     setMonetisePrompted(false); setVerifyPrompted(false);
     setSuspicion(0); setSuspended(false); setEverSuspended(false); setBanned(false);
-    setCopyrightEvent(null);
+    setCopyrightEvent(null); setExposeEvent(null); setBoughtSubs(false);
+    exposeActiveRef.current = false; boughtSubsRef.current = false; everSuspendedRef.current = false;
     setPrevMilestoneSubs(0);
   };
 
@@ -875,6 +1084,36 @@ export default function YouTubeSimulator() {
     setMoney(m => m - upg.cost);
     setOwnedUpgrades(o => [...o, upg.id]);
     addNotif(`🛒 Purchased ${upg.name}! ${upg.desc}`);
+  };
+
+  // Dev panel
+  const [devUnlocked, setDevUnlocked] = useState(false);
+  const [showDevPassword, setShowDevPassword] = useState(false);
+  const [devPassword, setDevPassword] = useState("");
+  const [devPasswordWrong, setDevPasswordWrong] = useState(false);
+  const DEV_PASSWORD = "ytdev2025";
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "#" && !showDevPassword) {
+        setShowDevPassword(true);
+        setDevPassword("");
+        setDevPasswordWrong(false);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [showDevPassword]);
+
+  const handleDevLogin = () => {
+    if (devPassword === DEV_PASSWORD) {
+      setDevUnlocked(u => !u);
+      setShowDevPassword(false);
+      setDevPassword("");
+    } else {
+      setDevPasswordWrong(true);
+      setDevPassword("");
+    }
   };
 
   const milestone = getMilestone(subs);
@@ -897,9 +1136,37 @@ export default function YouTubeSimulator() {
       `}</style>
 
       <Notifs notifs={notifs} />
+      {showDevPassword && (
+        <Modal onClose={() => setShowDevPassword(false)}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:36, marginBottom:12 }}>🔒</div>
+            <div style={{ fontSize:16, fontWeight:800, color:"#fff", marginBottom:4 }}>Dev Access</div>
+            <div style={{ fontSize:12, color:"#666", marginBottom:20 }}>Enter the developer password to {devUnlocked ? "hide" : "unlock"} the dev panel.</div>
+            <input
+              autoFocus
+              type="password"
+              value={devPassword}
+              onChange={e => { setDevPassword(e.target.value); setDevPasswordWrong(false); }}
+              onKeyDown={e => e.key === "Enter" && handleDevLogin()}
+              placeholder="Password..."
+              style={{
+                width:"100%", background:"#1a1a1a", border:`1px solid ${devPasswordWrong?"#ff4444":"#333"}`,
+                borderRadius:10, padding:"11px 14px", color:"#fff", fontSize:13,
+                fontFamily:"inherit", outline:"none", marginBottom:8, textAlign:"center",
+              }}
+            />
+            {devPasswordWrong && <div style={{ fontSize:11, color:"#ff4444", marginBottom:10 }}>Wrong password. Try again.</div>}
+            <button onClick={handleDevLogin} style={{
+              width:"100%", background:"linear-gradient(135deg,#333,#222)", border:"1px solid #444",
+              borderRadius:10, padding:"12px", color:"#aaa", fontSize:13, fontWeight:700, cursor:"pointer",
+            }}>Confirm</button>
+          </div>
+        </Modal>
+      )}
       {viralEvent && <ViralModal views={viralEvent.views} category={viralEvent.category} onClose={() => setViralEvent(null)} />}
       {flopEvent && <FlopModal views={flopEvent.views} onClose={() => setFlopEvent(null)} />}
       {copyrightEvent && <CopyrightModal lost={copyrightEvent.lost} song={copyrightEvent.song} onClose={() => setCopyrightEvent(null)} />}
+      {exposeEvent && <ExposeModal expose={exposeEvent} subs={subs} onRespond={handleExposeRespond} onBan={() => { setBanned(true); setExposeEvent(null); }} />}
       {suspended && <SuspensionModal onAppeal={handleAppeal} wasVerified={verified} />}
       {showMonetiseModal && !suspended && <MonetiseModal suspicion={suspicion} onApply={() => setMonetised(true)} onClose={() => setShowMonetiseModal(false)} />}
       {showVerifiedModal && !suspended && <VerifiedModal suspicion={suspicion} everSuspended={everSuspended} onApply={() => setVerified(true)} onClose={() => setShowVerifiedModal(false)} />}
@@ -937,7 +1204,7 @@ export default function YouTubeSimulator() {
 
       {/* Tabs */}
       <div style={{ background:"#111", borderBottom:"1px solid #161616", display:"flex", padding:"0 20px" }}>
-        {[["studio","🎬 Studio"],["videos","📺 Videos"],["shop","🛒 Shop"],["stats","📊 Stats"]].map(([id,label]) => (
+        {[["studio","🎬 Studio"],["videos","📺 Videos"],["shop","🛒 Shop"],["stats","📊 Stats"], ...(devUnlocked?[["dev","🛠 Dev"]]:[])]  .map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             background:"none", border:"none", color:tab===id?"#ff0000":"#666",
             padding:"11px 15px", fontSize:12, fontWeight:700, cursor:"pointer",
@@ -1141,6 +1408,64 @@ export default function YouTubeSimulator() {
                       return u?<div key={id} style={{ background:"#0d1f0d", border:"1px solid #1a3a1a", borderRadius:8, padding:"5px 10px", fontSize:11, fontWeight:600, color:"#4caf50" }}>{u.icon} {u.name}</div>:null;
                     })}
                   </div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── DEV PANEL ── */}
+        {tab==="dev" && (
+          <div style={{ display:"grid", gap:12 }}>
+            <div style={{ background:"#111", border:"1px solid #ff000033", borderRadius:16, padding:18 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:"#ff4444", marginBottom:4, letterSpacing:1 }}>🛠 DEV / CHEAT PANEL</div>
+              <div style={{ fontSize:11, color:"#555", marginBottom:16 }}>For testing only. Remove before publishing!</div>
+
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>SET SUBSCRIBERS</div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[1000,10000,100000,1000000,5000000,10000000].map(n => (
+                    <button key={n} onClick={() => { setSubs(n); subsRef.current=n; setPrevMilestoneSubs(0); }} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#aaa", fontSize:11, fontWeight:700, cursor:"pointer" }}>{fmt(n)}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>SET MONEY</div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[1000,10000,100000,500000].map(n => (
+                    <button key={n} onClick={() => { setMoney(n); setMonetised(true); setMonetisePrompted(true); monetisedRef.current=true; }} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#4caf50", fontSize:11, fontWeight:700, cursor:"pointer" }}>{fmtMoney(n)}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>TRIGGER EVENTS</div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[
+                    { label:"💀 Flop",      action:() => setFlopEvent({ views:Math.floor(Math.random()*50+5) }) },
+                    { label:"🔥 Viral",     action:() => setViralEvent({ views:Math.floor(subs*(5+Math.random()*10)), category:"🎮 Gaming" }) },
+                    { label:"🎵 Copyright", action:() => { setCopyrightEvent({ lost:999.99, song:COPYRIGHT_SONGS[0] }); copyrightActiveRef.current=true; }},
+                    { label:"📺 Expose",    action:() => { const d=getExposeDetails(boughtSubsRef.current,everSuspendedRef.current,subs); setExposeEvent({ title:EXPOSE_TITLES[0], dramaChannel:"DramaAlert2", exposeViews:Math.floor(subs*0.3), details:d }); exposeActiveRef.current=true; }},
+                    { label:"📺 Expose (TRUE)", action:() => { const d=getExposeDetails(true,true,subs); setExposeEvent({ title:EXPOSE_TITLES[1], dramaChannel:"TruthSeeker", exposeViews:Math.floor(subs*0.5), details:d }); exposeActiveRef.current=true; }},
+                    { label:"⚠️ Suspend",   action:() => setSuspended(true) },
+                  ].map(e => (
+                    <button key={e.label} onClick={e.action} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#ff8888", fontSize:11, fontWeight:700, cursor:"pointer" }}>{e.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>TOGGLE FLAGS</div>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                  {[
+                    { label:`Monetised: ${monetised?"ON":"OFF"}`,         action:() => { setMonetised(m=>!m); monetisedRef.current=!monetised; setMonetisePrompted(true); }},
+                    { label:`Verified: ${verified?"ON":"OFF"}`,           action:() => setVerified(v=>!v) },
+                    { label:`Bought Subs: ${boughtSubs?"ON":"OFF"}`,      action:() => { setBoughtSubs(b=>{ boughtSubsRef.current=!b; return !b; }); }},
+                    { label:`Ever Suspended: ${everSuspended?"ON":"OFF"}`,action:() => { setEverSuspended(e=>{ everSuspendedRef.current=!e; return !e; }); }},
+                  ].map(f => (
+                    <button key={f.label} onClick={f.action} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#4a9eff", fontSize:11, fontWeight:700, cursor:"pointer" }}>{f.label}</button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
