@@ -33,13 +33,13 @@ const THUMBNAILS_BY_CATEGORY = {
 };
 
 const MILESTONES = [
-  { subs:0,        label:"Nobody",          color:"#888",    badge:"👤", perk:"Start your journey" },
-  { subs:100,      label:"Starter",         color:"#a0522d", badge:"🌱", perk:"You're getting noticed!" },
-  { subs:1000,     label:"Rising Star",     color:"#4a9eff", badge:"⭐", perk:"Eligible for monetisation" },
+  { subs:0,         label:"Nobody",          color:"#888",    badge:"👤", perk:"Start your journey" },
+  { subs:100,       label:"Starter",         color:"#a0522d", badge:"🌱", perk:"You're getting noticed!" },
+  { subs:1000,      label:"Rising Star",     color:"#4a9eff", badge:"⭐", perk:"Eligible for monetisation" },
   { subs:100000,    label:"Silver Creator",  color:"#aaa",    badge:"🥈", perk:"Silver Play Button! +10% views" },
   { subs:1000000,   label:"Gold Creator",    color:"#ffd700", badge:"🥇", perk:"Gold Play Button! Eligible for verification" },
   { subs:10000000,  label:"Diamond Creator", color:"#b9f2ff", badge:"💎", perk:"Diamond Play Button! Brand deals" },
-  { subs:100000000, label:"LEGEND",          color:"#ff4444", badge:"👑", perk:"Ruby Button! YOU ARE YOUTUBE" },
+  { subs:50000000,  label:"RUBY LEGEND",     color:"#ff4444", badge:"👑", perk:"Ruby Button! YOU ARE YOUTUBE" },
 ];
 
 const UPGRADES = [
@@ -979,7 +979,7 @@ export default function YouTubeSimulator() {
       const fx = getEffects();
       const cat = CATEGORY_DATA.find(c => c.id === categoryId);
       const baseCooldown = Math.max(8, 30 - uploads*0.4);
-      setUploadCooldown(Math.round(baseCooldown*(fx.uploadSpeed||1)));
+      setUploadCooldown(bypassCooldown ? 0 : Math.round(baseCooldown*(fx.uploadSpeed||1)));
 
       // Flop chance: starts high (20%), reduces with subs
       const flopChance = Math.max(0.03, 0.20 - subs/50000);
@@ -987,7 +987,7 @@ export default function YouTubeSimulator() {
 
       // Viral chance: starts tiny (1%), scales with subs + uploads
       const viralChance = Math.min(0.25, 0.01 + subs/200000 + uploads*0.002 + (fx.ctrBonus||0)*0.003);
-      const viral = !flopped && Math.random() < viralChance;
+      const viral = !flopped && (alwaysViral || Math.random() < viralChance);
 
       const baseViews = Math.max(50, subs*0.15 + Math.random()*500);
       const viewMult = (fx.viewMult||1) * cat.boost * (fx.discoverability||1);
@@ -1091,7 +1091,29 @@ export default function YouTubeSimulator() {
   const [showDevPassword, setShowDevPassword] = useState(false);
   const [devPassword, setDevPassword] = useState("");
   const [devPasswordWrong, setDevPasswordWrong] = useState(false);
-  const DEV_PASSWORD = "ytdev2025";
+  const [customSubCount, setCustomSubCount] = useState("");
+  const [alwaysViral, setAlwaysViral] = useState(false);
+  const [bypassCooldown, setBypassCooldown] = useState(false);
+  const DEV_PASSWORD_HASH = "b888ef53d96bc5b3ac4cfd0557d2d91cbf4e1f279ce7167469d6d7abb1a606d6";
+
+  const hashPassword = async (input) => {
+    const encoded = new TextEncoder().encode(input);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  const handleDevLogin = async () => {
+    const hashed = await hashPassword(devPassword);
+    if (hashed === DEV_PASSWORD_HASH) {
+      setDevUnlocked(u => !u);
+      setShowDevPassword(false);
+      setDevPassword("");
+    } else {
+      setDevPasswordWrong(true);
+      setDevPassword("");
+    }
+  };
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -1104,17 +1126,6 @@ export default function YouTubeSimulator() {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [showDevPassword]);
-
-  const handleDevLogin = () => {
-    if (devPassword === DEV_PASSWORD) {
-      setDevUnlocked(u => !u);
-      setShowDevPassword(false);
-      setDevPassword("");
-    } else {
-      setDevPasswordWrong(true);
-      setDevPassword("");
-    }
-  };
 
   const milestone = getMilestone(subs);
   const nextMilestone = getNextMilestone(subs);
@@ -1421,10 +1432,23 @@ export default function YouTubeSimulator() {
 
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>SET SUBSCRIBERS</div>
-                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:8 }}>
                   {[1000,10000,100000,1000000,5000000,10000000].map(n => (
                     <button key={n} onClick={() => { setSubs(n); subsRef.current=n; setPrevMilestoneSubs(0); }} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#aaa", fontSize:11, fontWeight:700, cursor:"pointer" }}>{fmt(n)}</button>
                   ))}
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <input
+                    type="number"
+                    value={customSubCount}
+                    onChange={e => setCustomSubCount(e.target.value)}
+                    placeholder="Custom amount..."
+                    style={{ flex:1, background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 12px", color:"#fff", fontSize:11, fontFamily:"inherit", outline:"none" }}
+                  />
+                  <button onClick={() => {
+                    const n = parseInt(customSubCount);
+                    if (!isNaN(n) && n >= 0) { setSubs(n); subsRef.current=n; setPrevMilestoneSubs(0); setCustomSubCount(""); }
+                  }} style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"6px 14px", color:"#4a9eff", fontSize:11, fontWeight:700, cursor:"pointer" }}>Set</button>
                 </div>
               </div>
 
@@ -1459,6 +1483,8 @@ export default function YouTubeSimulator() {
                   {[
                     { label:`Monetised: ${monetised?"ON":"OFF"}`,         action:() => { setMonetised(m=>!m); monetisedRef.current=!monetised; setMonetisePrompted(true); }},
                     { label:`Verified: ${verified?"ON":"OFF"}`,           action:() => setVerified(v=>!v) },
+                    { label:`Always Viral: ${alwaysViral?"ON":"OFF"}`,    action:() => setAlwaysViral(v=>!v) },
+                    { label:`Bypass Cooldown: ${bypassCooldown?"ON":"OFF"}`, action:() => setBypassCooldown(v=>!v) },
                     { label:`Bought Subs: ${boughtSubs?"ON":"OFF"}`,      action:() => { setBoughtSubs(b=>{ boughtSubsRef.current=!b; return !b; }); }},
                     { label:`Ever Suspended: ${everSuspended?"ON":"OFF"}`,action:() => { setEverSuspended(e=>{ everSuspendedRef.current=!e; return !e; }); }},
                   ].map(f => (
