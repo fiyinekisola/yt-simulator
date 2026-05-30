@@ -192,67 +192,150 @@ function CopyrightModal({ lost, song, onClose }) {
 }
 
 // ── Suspension Modal ───────────────────────────────────────────────────────
-function SuspensionModal({ onAppeal, wasVerified }) {
-  const [appealing, setAppealing] = useState(false);
-  const [appealText, setAppealText] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+const GOOD_KEYWORDS = ["sorry","apologise","apologize","understand","mistake","won't happen","will not happen","never again","genuine","committed","learned","regret","reflect","take responsibility","my fault","wrong decision","deeply sorry","moving forward","improve","promise","honest","sincerely","acknowledge","realise","realize","growth","better","remorse"];
+const BAD_KEYWORDS = ["unfair","stupid","ridiculous","hate","wrong","false","lying","lied","scam","biased","discrimination","sue","lawyer","corrupt","joke","pathetic","useless","garbage","trash","nonsense","absurd","outrageous","demand","threatening"];
 
-  const submit = () => {
-    if (!appealText.trim()) return;
-    setAppealing(true);
-    setTimeout(() => { setSubmitted(true); setAppealing(false); }, 2500);
+function SuspensionModal({ onAppeal, wasVerified }) {
+  const [appealText, setAppealText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null); // null | "approved" | "rejected_short" | "rejected_tone" | "rejected_weak"
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownRef = useRef(null);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      cooldownRef.current = setTimeout(() => setCooldown(c => c - 1), 1000);
+    }
+    return () => clearTimeout(cooldownRef.current);
+  }, [cooldown]);
+
+  const formatCooldown = (s) => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+  const checkAppeal = () => {
+    const text = appealText.toLowerCase();
+
+    // Too short
+    if (appealText.trim().length < 50) return { outcome:"rejected_short", chance:0 };
+
+    // Bad keywords
+    const hasBad = BAD_KEYWORDS.some(w => text.includes(w));
+    if (hasBad) return { outcome:"rejected_tone", chance:0 };
+
+    // Count good keywords
+    const goodCount = GOOD_KEYWORDS.filter(w => text.includes(w)).length;
+    if (goodCount >= 3) return { outcome:"appeal", chance:0.80 };
+    if (goodCount >= 1) return { outcome:"appeal", chance:0.40 };
+    return { outcome:"rejected_weak", chance:0 };
   };
+
+  const handleSubmit = () => {
+    if (!appealText.trim() || submitting || cooldown > 0) return;
+    setSubmitting(true);
+    setTimeout(() => {
+      const { outcome, chance } = checkAppeal();
+      if (outcome === "appeal") {
+        const approved = Math.random() < chance;
+        setResult(approved ? "approved" : "rejected_weak");
+        if (!approved) setCooldown(180);
+      } else {
+        setResult(outcome);
+        setCooldown(180);
+      }
+      setSubmitting(false);
+    }, 2000);
+  };
+
+  const handleRetry = () => {
+    setResult(null);
+    setAppealText("");
+  };
+
+  if (result === "approved") return (
+    <Modal uncloseable>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
+        <div style={{ fontSize:18, fontWeight:800, color:"#4caf50", marginBottom:8 }}>Appeal Accepted</div>
+        <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.6 }}>
+          YouTube has reviewed your appeal and decided to reinstate your channel. This is your final warning — further violations will result in a permanent ban.
+          {wasVerified && <><br/><br/><b style={{ color:"#ff4444" }}>Note: Your verification badge has been permanently revoked.</b></>}
+        </div>
+        <button onClick={onAppeal} style={{ width:"100%", background:"linear-gradient(135deg,#4caf50,#2e7d32)", border:"none", borderRadius:10, padding:"13px", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer" }}>
+          Back to work 😤
+        </button>
+      </div>
+    </Modal>
+  );
+
+  const rejectionMessages = {
+    rejected_short: { title:"Appeal Too Brief", msg:"Your appeal was too short to be considered. YouTube requires a detailed explanation. Please write at least 50 characters." },
+    rejected_tone:  { title:"Inappropriate Language", msg:"Your appeal contained language that violates YouTube's communication guidelines. Aggressive or threatening appeals are automatically denied." },
+    rejected_weak:  { title:"Appeal Insufficient", msg:"Your appeal did not demonstrate genuine understanding of the violation. YouTube's team was not convinced. You may reapply after the cooldown." },
+  };
+
+  if (result && result !== "approved") {
+    const { title, msg } = rejectionMessages[result];
+    return (
+      <Modal uncloseable>
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>❌</div>
+          <div style={{ fontSize:18, fontWeight:800, color:"#ff4444", marginBottom:8 }}>{title}</div>
+          <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.6 }}>{msg}</div>
+          {cooldown > 0 ? (
+            <div style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:12, padding:20, marginBottom:16 }}>
+              <div style={{ fontSize:11, color:"#666", marginBottom:6 }}>You can reapply in</div>
+              <div style={{ fontSize:32, fontWeight:800, color:"#ff8c00", fontVariantNumeric:"tabular-nums" }}>{formatCooldown(cooldown)}</div>
+              <div style={{ fontSize:11, color:"#555", marginTop:6 }}>Uploading remains disabled</div>
+            </div>
+          ) : (
+            <button onClick={handleRetry} style={{ width:"100%", background:"linear-gradient(135deg,#ff8c00,#cc6600)", border:"none", borderRadius:10, padding:"13px", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer", marginBottom:8 }}>
+              Write a new appeal →
+            </button>
+          )}
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal uncloseable>
-      {submitted ? (
-        <div style={{ textAlign:"center" }}>
-          <div style={{ fontSize:44, marginBottom:12 }}>⏳</div>
-          <div style={{ fontSize:16, fontWeight:800, color:"#ffd700", marginBottom:8 }}>Appeal Submitted</div>
-          <div style={{ fontSize:12, color:"#888", marginBottom:20, lineHeight:1.6 }}>
-            YouTube is reviewing your appeal. This usually takes 24–48 hours. In the meantime you can't upload.
-          </div>
-          <button onClick={onAppeal} style={{
-            background:"linear-gradient(135deg,#ffd700,#ff8c00)", border:"none",
-            borderRadius:10, padding:"12px 32px", color:"#000",
-            fontSize:13, fontWeight:800, cursor:"pointer",
-          }}>Wait it out (skip ahead)</button>
+      <div style={{ textAlign:"center", marginBottom:20 }}>
+        <div style={{ fontSize:48, marginBottom:8 }}>⚠️</div>
+        <div style={{ fontSize:18, fontWeight:800, color:"#ff8c00", marginBottom:6 }}>Channel Suspended</div>
+        <div style={{ fontSize:12, color:"#888", lineHeight:1.6 }}>
+          YouTube has detected suspicious activity on your channel. Uploading is disabled until your appeal is resolved.
         </div>
-      ) : (
-        <div>
-          <div style={{ textAlign:"center", marginBottom:20 }}>
-            <div style={{ fontSize:48, marginBottom:8 }}>⚠️</div>
-            <div style={{ fontSize:18, fontWeight:800, color:"#ff8c00", marginBottom:6 }}>Channel Suspended</div>
-            <div style={{ fontSize:12, color:"#888", lineHeight:1.6 }}>
-              YouTube has detected suspicious activity on your channel. Your account has been temporarily suspended pending review.
-            </div>
-          </div>
-          <div style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:12, padding:16, marginBottom:16, fontSize:11, color:"#666", lineHeight:1.7 }}>
-            <b style={{ color:"#ff8c00" }}>Reason:</b> Artificial inflation of subscriber count via third-party services.<br/>
-            <b style={{ color:"#ff8c00" }}>Status:</b> Uploading disabled until appeal is resolved.
-            {wasVerified && <><br/><b style={{ color:"#ff4444" }}>⚠ Verification badge revoked.</b> Re-applying will have only a 10% success rate.</>}
-          </div>
-          <div style={{ fontSize:11, color:"#888", marginBottom:8, fontWeight:700 }}>Write your appeal:</div>
-          <textarea
-            value={appealText}
-            onChange={e => setAppealText(e.target.value)}
-            placeholder="Explain why your account should be reinstated..."
-            style={{
-              width:"100%", background:"#1a1a1a", border:"1px solid #333", borderRadius:10,
-              padding:12, color:"#fff", fontSize:12, resize:"none", height:90,
-              fontFamily:"inherit", outline:"none", marginBottom:16,
-            }}
-          />
-          <button onClick={submit} disabled={!appealText.trim() || appealing} style={{
-            width:"100%", background: appealText.trim() ? "linear-gradient(135deg,#ff8c00,#cc6600)" : "#1a1a1a",
-            border:"none", borderRadius:10, padding:"13px",
-            color: appealText.trim() ? "#fff" : "#444", fontSize:13,
-            fontWeight:800, cursor: appealText.trim() ? "pointer" : "not-allowed",
-          }}>
-            {appealing ? "Submitting appeal... ⏳" : "Submit Appeal →"}
-          </button>
-        </div>
-      )}
+      </div>
+      <div style={{ background:"#1a1a1a", border:"1px solid #333", borderRadius:12, padding:14, marginBottom:16, fontSize:11, color:"#666", lineHeight:1.8 }}>
+        <b style={{ color:"#ff8c00" }}>Reason:</b> Artificial inflation of subscriber count.<br/>
+        <b style={{ color:"#ff8c00" }}>Status:</b> Suspended — appeal required.<br/>
+        {wasVerified && <><b style={{ color:"#ff4444" }}>⚠ Verification badge revoked.</b></>}
+      </div>
+      <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>
+        Write your appeal: <span style={{ color: appealText.length < 50 ? "#ff4444" : "#4caf50" }}>({appealText.length} chars{appealText.length < 50 ? `, need ${50 - appealText.length} more` : " ✓"})</span>
+      </div>
+      <textarea
+        value={appealText}
+        onChange={e => setAppealText(e.target.value)}
+        placeholder="Explain why your account should be reinstated. Be genuine, take responsibility, and show you understand the violation..."
+        style={{
+          width:"100%", background:"#1a1a1a", border:"1px solid #333", borderRadius:10,
+          padding:12, color:"#fff", fontSize:12, resize:"none", height:110,
+          fontFamily:"inherit", outline:"none", marginBottom:12, lineHeight:1.6,
+        }}
+      />
+      <div style={{ fontSize:10, color:"#555", marginBottom:14, lineHeight:1.6 }}>
+        💡 Tips: Be genuine and take responsibility. Aggressive language will get your appeal rejected instantly. A weak appeal has a low chance of success even if accepted for review.
+      </div>
+      <button onClick={handleSubmit} disabled={appealText.trim().length < 50 || submitting || cooldown > 0} style={{
+        width:"100%",
+        background: appealText.trim().length >= 50 && !submitting ? "linear-gradient(135deg,#ff8c00,#cc6600)" : "#1a1a1a",
+        border:"none", borderRadius:10, padding:"13px",
+        color: appealText.trim().length >= 50 && !submitting ? "#fff" : "#444",
+        fontSize:13, fontWeight:800,
+        cursor: appealText.trim().length >= 50 && !submitting ? "pointer" : "not-allowed",
+      }}>
+        {submitting ? "YouTube is reviewing your appeal... ⏳" : cooldown > 0 ? `Reapply in ${formatCooldown(cooldown)}` : "Submit Appeal →"}
+      </button>
     </Modal>
   );
 }
