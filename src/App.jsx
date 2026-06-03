@@ -1,3 +1,6 @@
+tiiny.host
+youtube-simulator.jsx
+JAVASCRIPT
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -55,7 +58,35 @@ const UPGRADES = [
   { id:"agency",    name:"Brand Agency",     cost:50000, icon:"🏢", effect:"revMult",        value:2.0,  desc:"2x all ad revenue" },
 ];
 
-// Buy-subs packages
+// ── Superchat System ───────────────────────────────────────────────────────
+const SUPERCHAT_USERNAMES = [
+  "SoggyPotato","xX_Fan4Life_Xx","NotABot2847","CryptoKing99","GamingLegend","SubscribedSince2019",
+  "YourBiggestFan","JustAViewer","RandomDude42","MidnightGamer","TacoEnthusiast","CloudWatcher",
+  "PixelWizard","NoodleSoup99","GhostInTheChat","TheRealMVP","CoolBeans47","SilentWatcher",
+  "HypeTrainConductor","LegendaryLurker","PizzaLord","VibeChecker","ChaoticNeutral","BasementDweller",
+  "NotYourMom","EpicFail101","SleepyPanda","CaffeinatedDev","ToasterStrudel","WaffleHouse99",
+];
+
+const SUPERCHAT_MESSAGES = [
+  "love your content!", "keep it up! 🔥", "been watching since day 1!",
+  "you deserve more subs!", "this made my day 😭", "W content as always",
+  "pls notice me 🙏", "first time donating!", "you're so underrated",
+  "sending love from [country]!", "my favourite creator!", "let's gooo!!",
+  "been a rough week, thanks for cheering me up", "just got paid lol",
+  "worth every penny", "you changed my life fr", "THE GOAT 🐐",
+  "finally catching you live!", "can't stop watching your videos",
+];
+
+const SUPERCHAT_TIERS = [
+  { amount:1,   color:"#1565c0", chance:0.40, label:"Blue" },
+  { amount:5,   color:"#00838f", chance:0.28, label:"Teal" },
+  { amount:10,  color:"#558b2f", chance:0.16, label:"Green" },
+  { amount:20,  color:"#f57f17", chance:0.09, label:"Yellow" },
+  { amount:50,  color:"#e65100", chance:0.04, label:"Orange" },
+  { amount:100, color:"#b71c1c", chance:0.02, label:"Red" },
+  { amount:200, color:"#880e4f", chance:0.008,label:"Pink" },
+  { amount:500, color:"#4a148c", chance:0.002,label:"Purple" },
+];
 const BUY_SUBS_PACKAGES = [
   { id:"s",  label:"Small",  subs:500,    cost:50,   risk:8,  icon:"📦" },
   { id:"m",  label:"Medium", subs:5000,   cost:350,  risk:18, icon:"📫" },
@@ -84,7 +115,355 @@ function getNextMilestone(subs) {
   return MILESTONES.find(m => m.subs > subs) || null;
 }
 
-// ── Shared Modal shell ─────────────────────────────────────────────────────
+// ── Livestream System ──────────────────────────────────────────────────────
+const STREAM_CATEGORIES = [
+  { id:"Gaming",       icon:"🎮", viewBoost:1.3,  chatRate:1.4, desc:"High energy, huge audience" },
+  { id:"JustChatting", icon:"💬", viewBoost:1.1,  chatRate:1.8, desc:"Most superchats, very personal" },
+  { id:"Music",        icon:"🎵", viewBoost:1.15, chatRate:1.2, desc:"Great vibe, DMCA risk" },
+  { id:"Cooking",      icon:"🍕", viewBoost:1.0,  chatRate:1.1, desc:"Chill, loyal viewers" },
+  { id:"Art",          icon:"🎨", viewBoost:0.9,  chatRate:1.3, desc:"Niche but dedicated" },
+  { id:"IRL",          icon:"📱", viewBoost:1.2,  chatRate:1.5, desc:"Anything can happen" },
+];
+
+const CHAT_USERNAMES = [
+  "SoggyPotato","xX_Fan4Life_Xx","NotABot2847","CryptoKing99","GamingLegend","SubscribedSince2019",
+  "YourBiggestFan","JustAViewer","RandomDude42","MidnightGamer","TacoEnthusiast","CloudWatcher",
+  "PixelWizard","NoodleSoup99","GhostInTheChat","TheRealMVP","CoolBeans47","SilentWatcher",
+  "HypeTrainConductor","LegendaryLurker","PizzaLord","VibeChecker","ChaoticNeutral","BasementDweller",
+  "NotYourMom","EpicFail101","SleepyPanda","CaffeinatedDev","ToasterStrudel","WaffleHouse99",
+  "XxDarkLordxX","MemeLord420","NightOwl99","DailyViewer","SuperFan2019","ChillDude47",
+  "HypeMan","QuietWatcher","FirstTimer","LongTimeFan","JustSubscribed","ProGamer99",
+];
+
+const WARMUP_MESSAGES = [
+  "hi YT!", "hi YT", "HIIII", "hello!!", "yo YT 👋", "hi hi hi", "HI YT 😭",
+  "heyyy", "hello everyone!", "what's good YT", "YT YT YT", "hi from the UK!",
+  "hi from the US!", "finally caught a stream!", "HI 🔥", "yooo",
+];
+
+const COOKING_SUPERCHATS = [
+  "BRO IS LEGIT COOKING 🔥",
+  "ACTUALLY COOKING RN 🍳🔥",
+  "bro said let him cook and DELIVERED",
+  "Gordon Ramsay could never 🔥",
+  "this man is ACTUALLY cooking omg",
+];
+
+const CHAT_MESSAGES_BY_CATEGORY = {
+  Gaming:          ["LET'S GOOO","W gaming","you're actually cracked","HOW","gg gg","CLIP THAT","no way bro","ratio","skill issue lmao","that was insane","bro is not real","pog","POGGERS","touch grass","actually goated"],
+  JustChatting:    ["real talk","I feel that","same honestly","preach","this is so true","fr fr","no cap","based","W take","I needed to hear this","mood","love this stream","so wholesome","facts","bestie behavior"],
+  Music:           ["this goes hard","W song choice","banger","this slaps","the vibes are immaculate","🎵","sing more!","fire 🔥","this is art","this is my fav song","more of this pls","ok this is actually good","godlike taste","🎶"],
+  Cooking:         ["that looks amazing","I'm hungry now","what's the recipe?","my mouth is watering","Gordon Ramsay could never","actual chef","I'd eat that","bro can cook","teach me","what temp?","add more garlic","W cook"],
+  Art:             ["that's beautiful","so talented","how long did that take?","the detail omg","art king/queen","I could never","teach me","this is so good","drop a print","commission me one","love your style"],
+  IRL:             ["WHERE ARE YOU","this is wild","only on IRL streams","W content","this is so chaotic","I'd never","bro really did that","camera man MVP","the streets are watching","iconic"],
+};
+
+const CHAT_BADGES = [
+  { icon:"",   label:"",         weight:45 },
+  { icon:"⭐", label:"Member",   weight:20, color:"#ffd700" },
+  { icon:"🏆", label:"OG",       weight:8,  color:"#ff8c00" },
+  { icon:"💎", label:"VIP",      weight:5,  color:"#b9f2ff" },
+  { icon:"🛡️", label:"Mod",      weight:8,  color:"#4a9eff" },
+  { icon:"👑", label:"Top Fan",  weight:4,  color:"#ff4444" },
+  { icon:"🎖️", label:"Verified", weight:3,  color:"#aaa"    },
+  { icon:"🔥", label:"Gifter",   weight:2,  color:"#ff6b35" },
+];
+
+const USERNAME_COLORS = ["#ff4444","#ff8c00","#ffd700","#4caf50","#4a9eff","#b9f2ff","#ff69b4","#ff6b35","#7c4dff","#aaa"];
+
+function pickBadge() {
+  const total = CHAT_BADGES.reduce((a,b) => a+b.weight, 0);
+  let r = Math.random()*total, cum = 0;
+  for (const b of CHAT_BADGES) { cum+=b.weight; if (r<cum) return b; }
+  return CHAT_BADGES[0];
+}
+
+function safeBadge(badge) {
+  return badge && badge.icon !== undefined ? badge : CHAT_BADGES[0];
+}
+
+// ── Stream Category Picker ─────────────────────────────────────────────────
+function StreamCategoryModal({ onSelect, onClose }) {
+  const [selected, setSelected] = useState(null);
+  const [title, setTitle] = useState("");
+  const cat = STREAM_CATEGORIES.find(c => c.id === selected);
+  return (
+    <Modal onClose={onClose}>
+      <div style={{ fontSize:16, fontWeight:800, color:"#fff", marginBottom:4 }}>Set up your stream</div>
+      <div style={{ fontSize:12, color:"#666", marginBottom:14 }}>Choose a category and give your stream a title.</div>
+      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Stream title (e.g. grinding ranked until I win)"
+        style={{ width:"100%", background:"#1a1a1a", border:"1px solid #333", borderRadius:8, padding:"9px 12px", color:"#fff", fontSize:12, fontFamily:"inherit", outline:"none", marginBottom:12 }} />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+        {STREAM_CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setSelected(cat.id)} style={{
+            background: selected===cat.id ? "#ff000022" : "#1a1a1a",
+            border:`1px solid ${selected===cat.id?"#ff0000":"#2a2a2a"}`,
+            borderRadius:10, padding:"10px 12px", cursor:"pointer", textAlign:"left", transition:"all 0.15s",
+          }}>
+            <div style={{ fontSize:20, marginBottom:3 }}>{cat.icon}</div>
+            <div style={{ fontSize:12, fontWeight:700, color:"#fff" }}>{cat.id === "JustChatting" ? "Just Chatting" : cat.id}</div>
+            <div style={{ fontSize:10, color:"#666", marginTop:2 }}>{cat.desc}</div>
+            <div style={{ display:"flex", gap:6, marginTop:5 }}>
+              <span style={{ fontSize:9, background:"#ff000022", color:"#ff6b6b", borderRadius:4, padding:"1px 5px", fontWeight:700 }}>👁 ×{cat.viewBoost.toFixed(1)}</span>
+              <span style={{ fontSize:9, background:"#4a9eff22", color:"#4a9eff", borderRadius:4, padding:"1px 5px", fontWeight:700 }}>💬 ×{cat.chatRate.toFixed(1)}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+      <button onClick={() => selected && title.trim() && onSelect(selected, title.trim())} disabled={!selected||!title.trim()} style={{
+        width:"100%", background: selected&&title.trim() ? "linear-gradient(135deg,#ff0000,#cc0000)" : "#1a1a1a",
+        border:"none", borderRadius:10, padding:"13px", color: selected&&title.trim() ? "#fff" : "#555",
+        fontSize:14, fontWeight:800, cursor: selected&&title.trim() ? "pointer" : "not-allowed",
+      }}>
+        {selected&&title.trim() ? `🔴 Go Live — ${cat?.icon} ${selected}` : "Fill in title and select category"}
+      </button>
+    </Modal>
+  );
+}
+
+// ── Live Chat Mini Widget (shown on other tabs) ────────────────────────────
+function LiveChatMini({ messages, viewers, streamTitle, streamCat, onGoToLive }) {
+  const chatRef = useRef(null);
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [messages]);
+  return (
+    <div style={{
+      position:"fixed", bottom:20, left:16, zIndex:996, width:260,
+      background:"#111", border:"1px solid #ff000044", borderRadius:14,
+      overflow:"hidden", boxShadow:"0 8px 32px rgba(255,0,0,0.2)",
+    }}>
+      <div onClick={onGoToLive} style={{ background:"#1a0000", padding:"8px 12px", display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}
+        onMouseEnter={e=>e.currentTarget.style.background="#220000"} onMouseLeave={e=>e.currentTarget.style.background="#1a0000"}>
+        <div style={{ width:7, height:7, borderRadius:"50%", background:"#ff0000", animation:"pulse 1s infinite" }} />
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:10, fontWeight:800, color:"#ff4444", letterSpacing:0.5 }}>LIVE</div>
+          <div style={{ fontSize:10, color:"#888", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{streamCat} · {streamTitle}</div>
+        </div>
+        <div style={{ fontSize:10, color:"#aaa" }}>👁 {fmt(viewers)}</div>
+      </div>
+      <div ref={chatRef} style={{ height:160, overflowY:"auto", padding:"8px 10px", display:"flex", flexDirection:"column", gap:5 }}>
+        {messages.slice(-20).map(m => {
+          const badge = safeBadge(m.badge);
+          return (
+          <div key={m.id} style={{ fontSize:10, lineHeight:1.4 }}>
+            {m.isSuperchat ? (
+              <div style={{ background:m.scTier.color+"33", border:`1px solid ${m.scTier.color}66`, borderRadius:6, padding:"3px 7px" }}>
+                <span style={{ color:m.scTier.color, fontWeight:800 }}>💬 ${m.scTier.amount} · </span>
+                <span style={{ color:m.color, fontWeight:700 }}>{badge.icon} {m.username}: </span>
+                <span style={{ color:"#ccc" }}>{m.text}</span>
+              </div>
+            ) : m.isSystem ? (
+              <div style={{ textAlign:"center", color:"#555", fontStyle:"italic" }}>{m.text}</div>
+            ) : (
+              <span>
+                {badge.icon && <span style={{ marginRight:3 }}>{badge.icon}</span>}
+                <span style={{ color:m.color, fontWeight:700 }}>{m.username}: </span>
+                <span style={{ color:"#aaa" }}>{m.text}</span>
+              </span>
+            )}
+          </div>
+          );
+        })}
+      </div>
+      <div style={{ padding:"6px 10px", borderTop:"1px solid #1a1a1a", fontSize:9, color:"#444", textAlign:"center" }}>
+        Click to go to stream →
+      </div>
+    </div>
+  );
+}
+
+// ── Live Tab ───────────────────────────────────────────────────────────────
+function LiveTab({ isLive, streamData, chatMessages, onGoLive, onEndStream, monetised, subs }) {
+  const chatRef = useRef(null);
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [chatMessages]);
+
+  if (!isLive) return (
+    <div style={{ display:"grid", gap:16 }}>
+      {/* OBS-style setup panel */}
+      <div style={{ background:"#0d0d0d", border:"1px solid #1a1a1a", borderRadius:16, overflow:"hidden" }}>
+        {/* OBS top bar */}
+        <div style={{ background:"#111", borderBottom:"1px solid #1a1a1a", padding:"10px 16px", display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#888", letterSpacing:1 }}>STREAM MANAGER</div>
+          <div style={{ flex:1 }} />
+          <div style={{ display:"flex", gap:6 }}>
+            {["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width:10, height:10, borderRadius:"50%", background:c }} />)}
+          </div>
+        </div>
+        {/* Preview area */}
+        <div style={{ background:"#000", height:180, display:"flex", alignItems:"center", justifyContent:"center", position:"relative" }}>
+          <div style={{ textAlign:"center" }}>
+            <div style={{ fontSize:40, marginBottom:8, opacity:0.3 }}>📷</div>
+            <div style={{ fontSize:12, color:"#333", fontWeight:600 }}>No signal — stream not started</div>
+          </div>
+          {/* OBS overlays */}
+          <div style={{ position:"absolute", top:8, left:8, background:"rgba(0,0,0,0.7)", borderRadius:6, padding:"3px 8px", fontSize:10, color:"#666" }}>
+            1920×1080 · 60fps
+          </div>
+          <div style={{ position:"absolute", top:8, right:8, background:"rgba(0,0,0,0.7)", borderRadius:6, padding:"3px 8px", fontSize:10, color:"#666" }}>
+            CPU: 12% · GPU: 8%
+          </div>
+          <div style={{ position:"absolute", bottom:8, left:8, background:"rgba(0,0,0,0.7)", borderRadius:6, padding:"3px 8px", fontSize:10, color:"#555" }}>
+            Bitrate: 6000kbps · Encoder: x264
+          </div>
+        </div>
+        {/* OBS scenes */}
+        <div style={{ background:"#0a0a0a", borderTop:"1px solid #111", padding:"10px 16px" }}>
+          <div style={{ fontSize:10, color:"#555", fontWeight:700, marginBottom:8, letterSpacing:1 }}>SCENES</div>
+          <div style={{ display:"flex", gap:8 }}>
+            {["Starting Soon","Main Scene","BRB","End Screen"].map((s,i) => (
+              <div key={s} style={{ background: i===1?"#ff000022":"#111", border:`1px solid ${i===1?"#ff444444":"#222"}`, borderRadius:6, padding:"5px 10px", fontSize:10, color:i===1?"#ff8888":"#555", cursor:"default" }}>{s}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Stream info */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+        <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:12, padding:14 }}>
+          <div style={{ fontSize:10, color:"#555", marginBottom:6, fontWeight:700, letterSpacing:1 }}>STREAM SETTINGS</div>
+          {[["Platform","YouTube Live"],["Quality","1080p60"],["Encoder","Software x264"],["Bitrate","6000 kbps"]].map(([k,v]) => (
+            <div key={k} style={{ display:"flex", justifyContent:"space-between", fontSize:11, marginBottom:4 }}>
+              <span style={{ color:"#555" }}>{k}</span><span style={{ color:"#888" }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:12, padding:14 }}>
+          <div style={{ fontSize:10, color:"#555", marginBottom:6, fontWeight:700, letterSpacing:1 }}>REQUIREMENTS</div>
+          {[
+            ["1,000 Subscribers", subs >= 1000],
+            ["Monetised", monetised],
+            ["No active suspension", true],
+          ].map(([k,met]) => (
+            <div key={k} style={{ display:"flex", gap:6, alignItems:"center", fontSize:11, marginBottom:5 }}>
+              <span>{met?"✅":"❌"}</span><span style={{ color:met?"#aaa":"#555" }}>{k}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {subs >= 1000 && monetised ? (
+        <button onClick={onGoLive} style={{
+          background:"linear-gradient(135deg,#ff0000,#cc0000)", border:"none", borderRadius:12,
+          padding:"16px", color:"#fff", fontSize:16, fontWeight:800, cursor:"pointer",
+          animation:"pulse 2s infinite", letterSpacing:0.5,
+        }}>🔴 GO LIVE NOW</button>
+      ) : (
+        <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:12, padding:16, textAlign:"center", fontSize:12, color:"#555" }}>
+          {!monetised ? "Get monetised to go live" : "Reach 1,000 subscribers to go live"}
+        </div>
+      )}
+    </div>
+  );
+
+  // LIVE VIEW
+  const { title, category, viewers, peakViewers, duration, earnings, subsGained, streamSuperchats } = streamData;
+  const cat = STREAM_CATEGORIES.find(c => c.id === category);
+  const mins = Math.floor(duration/60);
+  const secs = duration%60;
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 320px", gap:12, height:"calc(100vh - 160px)", minHeight:500 }}>
+      {/* Left — stream preview + stats */}
+      <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {/* Stream preview */}
+        <div style={{ background:"#000", borderRadius:14, overflow:"hidden", position:"relative", flex:"0 0 auto" }}>
+          <div style={{ background:"linear-gradient(135deg,#0a0a0a,#111)", height:200, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:48 }}>{cat?.icon}</div>
+              <div style={{ fontSize:13, color:"#888", marginTop:8, fontWeight:600 }}>{title}</div>
+            </div>
+          </div>
+          {/* Live badge */}
+          <div style={{ position:"absolute", top:10, left:10, background:"#ff0000", color:"#fff", fontSize:10, fontWeight:800, padding:"3px 8px", borderRadius:4, letterSpacing:1, display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:"#fff", animation:"pulse 1s infinite" }} />
+            LIVE
+          </div>
+          {/* Duration */}
+          <div style={{ position:"absolute", top:10, right:10, background:"rgba(0,0,0,0.8)", color:"#fff", fontSize:11, fontWeight:700, padding:"3px 8px", borderRadius:4, fontVariantNumeric:"tabular-nums" }}>
+            {String(Math.floor(mins/60)).padStart(2,"0")}:{String(mins%60).padStart(2,"0")}:{String(secs).padStart(2,"0")}
+          </div>
+          {/* Viewer count */}
+          <div style={{ position:"absolute", bottom:10, left:10, background:"rgba(0,0,0,0.8)", color:"#fff", fontSize:11, padding:"3px 10px", borderRadius:4, display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:"#ff0000" }} />
+            {fmt(viewers)} watching
+          </div>
+          {/* Category */}
+          <div style={{ position:"absolute", bottom:10, right:10, background:"rgba(0,0,0,0.8)", color:"#ff8888", fontSize:10, fontWeight:700, padding:"3px 10px", borderRadius:4 }}>
+            {cat?.icon} {category}
+          </div>
+        </div>
+
+        {/* Live stats grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8 }}>
+          {[
+            { label:"Viewers",     value:fmt(viewers),        sub:`Peak: ${fmt(peakViewers)}`, icon:"👁", color:"#fff" },
+            { label:"Earned",      value:fmtMoney(earnings),  sub:"this stream",               icon:"💰", color:"#4caf50" },
+            { label:"New Subs",    value:"+"+fmt(subsGained), sub:"from stream",               icon:"👥", color:"#4a9eff" },
+            { label:"Superchats",  value:streamSuperchats,    sub:"received",                  icon:"💬", color:"#ffd700" },
+          ].map(s => (
+            <div key={s.label} style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:10, padding:12, textAlign:"center" }}>
+              <div style={{ fontSize:18, marginBottom:2 }}>{s.icon}</div>
+              <div style={{ fontSize:15, fontWeight:800, color:s.color }}>{s.value}</div>
+              <div style={{ fontSize:9, color:"#555", marginTop:1 }}>{s.sub}</div>
+              <div style={{ fontSize:9, color:"#444" }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* End stream button */}
+        <button onClick={onEndStream} style={{
+          background:"#1a0000", border:"1px solid #ff000044", borderRadius:10,
+          padding:"12px", color:"#ff4444", fontSize:13, fontWeight:800, cursor:"pointer",
+          transition:"all 0.2s",
+        }}
+          onMouseEnter={e=>{ e.currentTarget.style.background="#2a0000"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.background="#1a0000"; }}
+        >⬛ End Stream</button>
+      </div>
+
+      {/* Right — live chat */}
+      <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:14, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{ padding:"10px 14px", borderBottom:"1px solid #1a1a1a", display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#fff" }}>Live Chat</div>
+          <div style={{ fontSize:10, color:"#555", marginLeft:"auto" }}>{fmt(viewers)} in chat</div>
+        </div>
+        <div ref={chatRef} style={{ flex:1, overflowY:"auto", padding:"10px 12px", display:"flex", flexDirection:"column", gap:6 }}>
+          {chatMessages.map(m => {
+            const badge = safeBadge(m.badge);
+            return (
+            <div key={m.id} style={{ fontSize:11, lineHeight:1.5 }}>
+              {m.isSuperchat ? (
+                <div style={{ background:m.scTier.color+"33", border:`1px solid ${m.scTier.color}66`, borderRadius:8, padding:"6px 10px", marginBottom:2 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
+                    <span style={{ fontSize:10, fontWeight:800, color:m.scTier.color }}>💬 ${m.scTier.amount} Superchat</span>
+                  </div>
+                  <span style={{ color:m.color, fontWeight:700 }}>
+                    {badge.icon && <span style={{ marginRight:3 }}>{badge.icon}</span>}
+                    {m.username}:
+                  </span>
+                  <span style={{ color:"#ddd", marginLeft:4 }}>{m.text}</span>
+                </div>
+              ) : m.isSystem ? (
+                <div style={{ textAlign:"center", fontSize:10, color:"#555", fontStyle:"italic", margin:"2px 0" }}>{m.text}</div>
+              ) : (
+                <div>
+                  {badge.icon && <span style={{ marginRight:3, fontSize:11 }} title={badge.label}>{badge.icon}</span>}
+                  <span style={{ color:m.color, fontWeight:700, marginRight:4 }}>{m.username}</span>
+                  <span style={{ color:"#aaa" }}>{m.text}</span>
+                </div>
+              )}
+            </div>
+            );
+          })}
+        </div>
+        <div style={{ padding:"8px 12px", borderTop:"1px solid #1a1a1a", background:"#0d0d0d" }}>
+          <div style={{ background:"#1a1a1a", border:"1px solid #2a2a2a", borderRadius:8, padding:"8px 12px", fontSize:11, color:"#444", fontStyle:"italic" }}>
+            Chat is read-only during stream...
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 function Modal({ children, onClose, uncloseable }) {
   return (
     <div style={{
@@ -193,7 +572,7 @@ function CopyrightModal({ lost, song, onClose }) {
 
 // ── Suspension Modal ───────────────────────────────────────────────────────
 const GOOD_KEYWORDS = ["sorry","apologise","apologize","understand","mistake","won't happen","will not happen","never again","genuine","committed","learned","regret","reflect","take responsibility","my fault","wrong decision","deeply sorry","moving forward","improve","promise","honest","sincerely","acknowledge","realise","realize","growth","better","remorse"];
-const BAD_KEYWORDS = ["unfair","stupid","ridiculous","hate","wrong","false","lying","lied","scam","biased","discrimination","sue","lawyer","corrupt","joke","pathetic","useless","garbage","trash","nonsense","absurd","outrageous","demand","threatening"];
+const BAD_KEYWORDS = ["unfair","stupid","ridiculous","hate","false","lying","lied","scam","biased","discrimination","sue","lawyer","corrupt","joke","pathetic","useless","garbage","trash","nonsense","absurd","outrageous","demand","threatening"];
 
 function SuspensionModal({ onAppeal, wasVerified }) {
   const [appealText, setAppealText] = useState("");
@@ -795,6 +1174,27 @@ function CategoryPickerModal({ onSelect, onClose }) {
   );
 }
 
+// ── Superchat Toast ────────────────────────────────────────────────────────
+function SuperchatToast({ superchats }) {
+  return (
+    <div style={{ position:"fixed", bottom:20, right:16, zIndex:997, display:"flex", flexDirection:"column-reverse", gap:8, pointerEvents:"none", maxWidth:300 }}>
+      {superchats.map(s => (
+        <div key={s.id} style={{
+          background: s.tier.color, borderRadius:12, padding:"10px 14px",
+          animation:"slideIn 0.3s ease", boxShadow:"0 4px 20px rgba(0,0,0,0.5)",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+            <span style={{ fontSize:11, fontWeight:800, color:"#fff", opacity:0.85 }}>💬 Superchat</span>
+            <span style={{ fontSize:12, fontWeight:800, color:"#fff", marginLeft:"auto" }}>${s.tier.amount}</span>
+          </div>
+          <div style={{ fontSize:12, fontWeight:700, color:"#fff" }}>@{s.username}</div>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.8)", marginTop:2 }}>{s.message}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Notifications ──────────────────────────────────────────────────────────
 function Notifs({ notifs }) {
   return (
@@ -833,6 +1233,7 @@ function VideoCard({ video, monetised }) {
         {video.viral && <div style={{ position:"absolute", top:6, right:6, background:"#ff0000", color:"#fff", fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:4, letterSpacing:1 }}>VIRAL</div>}
         {video.flopped && <div style={{ position:"absolute", top:6, right:6, background:"#333", color:"#777", fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:4, letterSpacing:1 }}>FLOPPED</div>}
         {video.copyrightClaimed && !video.flopped && <div style={{ position:"absolute", top:6, right:6, background:"#ff8c00", color:"#fff", fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:4, letterSpacing:1 }}>©️ CLAIMED</div>}
+        {video.isVod && <div style={{ position:"absolute", top:6, left:6, background:"#1565c0", color:"#fff", fontSize:9, fontWeight:800, padding:"2px 6px", borderRadius:4, letterSpacing:1 }}>● STREAMED LIVE</div>}
         <div style={{ position:"absolute", bottom:4, left:6, background:"#ff000022", border:"1px solid #ff000033", color:"#ff8888", fontSize:9, padding:"1px 5px", borderRadius:3, fontWeight:700 }}>{video.category}</div>
         <div style={{ position:"absolute", bottom:4, right:6, background:"rgba(0,0,0,0.8)", color:"#fff", fontSize:9, padding:"1px 5px", borderRadius:3 }}>{Math.floor(video.duration/60)}:{String(video.duration%60).padStart(2,"0")}</div>
       </div>
@@ -897,7 +1298,19 @@ export default function YouTubeSimulator() {
   const [banned, setBanned] = useState(false);
   const [showBuySubsModal, setShowBuySubsModal] = useState(false);
 
-  // Copyright system
+  // Superchat system
+  const [superchats, setSuperchats] = useState([]);
+  const [totalSuperchats, setTotalSuperchats] = useState(0);
+  const lastSuperchatRef = useRef(0);
+
+  // Livestream system
+  const [isLive, setIsLive] = useState(false);
+  const [showStreamSetup, setShowStreamSetup] = useState(false);
+  const [streamData, setStreamData] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const streamRef = useRef(null);
+  const isLiveRef = useRef(false);
+  const chatCountRef = useRef(0);
   const [copyrightEvent, setCopyrightEvent] = useState(null); // { lost, song }
 
   // Expose system
@@ -987,6 +1400,33 @@ export default function YouTubeSimulator() {
             setMoney(m => Math.max(0, m - lost));
             return vids.map(v => v.id === target.id ? { ...v, revenue:0, copyrightClaimed:true } : v);
           });
+        }
+      }
+
+      // Superchat — only when monetised, scales with subs
+      // Minimum 15s between superchats, chance increases with audience size
+      const timeSinceSuperchat = now - lastSuperchatRef.current;
+      if (monetisedRef.current && subsRef.current >= 1000 && timeSinceSuperchat > 15000) {
+        const superChatChance = Math.min(0.12, 0.005 + (subsRef.current / 500000) * 0.08);
+        if (Math.random() < superChatChance) {
+          // Pick tier by weighted chance
+          const roll = Math.random();
+          let cumulative = 0;
+          let chosenTier = SUPERCHAT_TIERS[0];
+          for (const tier of SUPERCHAT_TIERS) {
+            cumulative += tier.chance;
+            if (roll < cumulative) { chosenTier = tier; break; }
+          }
+          const username = SUPERCHAT_USERNAMES[Math.floor(Math.random()*SUPERCHAT_USERNAMES.length)];
+          const message = SUPERCHAT_MESSAGES[Math.floor(Math.random()*SUPERCHAT_MESSAGES.length)];
+          const scId = Date.now() + Math.random();
+          lastSuperchatRef.current = now;
+          setSuperchats(s => [...s, { id:scId, username, message, tier:chosenTier }]);
+          setMoney(m => m + chosenTier.amount);
+          setTotalEarned(t => t + chosenTier.amount);
+          setTotalSuperchats(t => t + chosenTier.amount);
+          // Auto-remove after 4 seconds
+          setTimeout(() => setSuperchats(s => s.filter(sc => sc.id !== scId)), 4000);
         }
       }
 
@@ -1158,6 +1598,9 @@ export default function YouTubeSimulator() {
     setMonetisePrompted(false); setVerifyPrompted(false);
     setSuspicion(0); setSuspended(false); setEverSuspended(false); setBanned(false);
     setCopyrightEvent(null); setExposeEvent(null); setBoughtSubs(false);
+    setSuperchats([]); setTotalSuperchats(0);
+    setIsLive(false); setStreamData(null); setChatMessages([]);
+    isLiveRef.current = false;
     exposeActiveRef.current = false; boughtSubsRef.current = false; everSuspendedRef.current = false;
     setPrevMilestoneSubs(0);
   };
@@ -1168,6 +1611,10 @@ export default function YouTubeSimulator() {
     setOwnedUpgrades(o => [...o, upg.id]);
     addNotif(`🛒 Purchased ${upg.name}! ${upg.desc}`);
   };
+
+  const milestone = getMilestone(subs);
+  const nextMilestone = getNextMilestone(subs);
+  const progress = nextMilestone ? ((subs-milestone.subs)/(nextMilestone.subs-milestone.subs))*100 : 100;
 
   // Dev panel
   const [devUnlocked, setDevUnlocked] = useState(false);
@@ -1210,9 +1657,132 @@ export default function YouTubeSimulator() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [showDevPassword]);
 
-  const milestone = getMilestone(subs);
-  const nextMilestone = getNextMilestone(subs);
-  const progress = nextMilestone ? ((subs-milestone.subs)/(nextMilestone.subs-milestone.subs))*100 : 100;
+  // Stream tick
+  useEffect(() => {
+    if (!isLive || !streamData) return;
+    streamRef.current = setInterval(() => {
+      const cat = STREAM_CATEGORIES.find(c => c.id === streamData.category);
+
+      setStreamData(prev => {
+        if (!prev) return prev;
+        const newDuration = prev.duration + 1;
+        // Viewers: ramp up for first 5 mins, peak, slowly decline after 20 mins
+        const rampFactor = Math.min(1, newDuration / 300);
+        const decayFactor = newDuration > 1200 ? Math.max(0.5, 1 - (newDuration-1200)/3600) : 1;
+        const baseViewers = Math.max(10, subs * 0.03 * rampFactor * decayFactor * (cat?.viewBoost||1));
+        const jitter = (Math.random()-0.5) * baseViewers * 0.1;
+        const newViewers = Math.max(1, Math.floor(baseViewers + jitter));
+        const newPeak = Math.max(prev.peakViewers, newViewers);
+
+        // Revenue: per second based on viewers
+        const revPerSec = monetised ? newViewers * 0.0001 : 0;
+        // Subs gained
+        const subsThisTick = Math.random() < 0.1 ? Math.floor(newViewers * 0.001) : 0;
+        const newSubsGained = prev.subsGained + subsThisTick;
+        if (subsThisTick > 0) setSubs(s => s + subsThisTick);
+
+        // Chat message every ~1-3 seconds
+        const chatChance = 0.6 * (cat?.chatRate||1);
+        if (Math.random() < chatChance) {
+          const isWarmup = newDuration < 30;
+          const msgs = isWarmup
+            ? WARMUP_MESSAGES
+            : (CHAT_MESSAGES_BY_CATEGORY[streamData.category] || CHAT_MESSAGES_BY_CATEGORY["Gaming"]);
+          const username = CHAT_USERNAMES[Math.floor(Math.random()*CHAT_USERNAMES.length)];
+          const badge = isWarmup ? CHAT_BADGES[0] : pickBadge();
+          const color = USERNAME_COLORS[Math.floor(Math.random()*USERNAME_COLORS.length)];
+          const text = msgs[Math.floor(Math.random()*msgs.length)];
+
+          // Cooking category special superchat between 30-90 seconds
+          const isCookingSuperchat = streamData.category === "Cooking" && newDuration >= 30 && newDuration <= 90 && Math.random() < 0.03;
+
+          // Regular superchat chance during stream (higher than normal)
+          const isSuperchat = !isCookingSuperchat && !isWarmup && Math.random() < 0.04;
+          let scTier = null;
+          let scAmount = 0;
+
+          if (isCookingSuperchat) {
+            scTier = SUPERCHAT_TIERS[3]; // $20 yellow
+            scAmount = scTier.amount;
+            const scMsg = COOKING_SUPERCHATS[Math.floor(Math.random()*COOKING_SUPERCHATS.length)];
+            const msg = {
+              id: Date.now()+Math.random(), username, badge: pickBadge(), color, text:scMsg,
+              isSuperchat:true, scTier, isSystem:false,
+            };
+            setChatMessages(m => [...m.slice(-150), msg]);
+            setMoney(m => m+scAmount);
+            setTotalEarned(t => t+scAmount);
+            setTotalSuperchats(t => t+scAmount);
+            return { ...prev, duration:newDuration, viewers:newViewers, peakViewers:newPeak, earnings:prev.earnings+revPerSec+scAmount, subsGained:newSubsGained, streamSuperchats:prev.streamSuperchats+1 };
+          }
+
+          if (isSuperchat) {
+            const roll = Math.random();
+            let cum = 0;
+            for (const t of SUPERCHAT_TIERS) { cum+=t.chance; if (roll<cum) { scTier=t; break; } }
+            if (!scTier) scTier = SUPERCHAT_TIERS[0];
+            scAmount = scTier.amount;
+          }
+
+          const msg = {
+            id: Date.now()+Math.random(), username, badge, color, text,
+            isSuperchat, scTier, isSystem:false,
+          };
+          setChatMessages(m => [...m.slice(-150), msg]);
+
+          if (isSuperchat) {
+            setMoney(m => m+scAmount);
+            setTotalEarned(t => t+scAmount);
+            setTotalSuperchats(t => t+scAmount);
+            return { ...prev, duration:newDuration, viewers:newViewers, peakViewers:newPeak, earnings:prev.earnings+revPerSec+scAmount, subsGained:newSubsGained, streamSuperchats:prev.streamSuperchats+1 };
+          }
+        }
+
+        // Periodic sub join notifications
+        if (Math.random() < 0.05) {
+          const joiner = CHAT_USERNAMES[Math.floor(Math.random()*CHAT_USERNAMES.length)];
+          setChatMessages(m => [...m.slice(-150), { id:Date.now()+Math.random(), text:`${joiner} just subscribed! 🎉`, isSystem:true }]);
+          setSubs(s => s+1);
+        }
+
+        setMoney(mo => mo+revPerSec);
+        setTotalEarned(t => t+revPerSec);
+        return { ...prev, duration:newDuration, viewers:newViewers, peakViewers:newPeak, earnings:prev.earnings+revPerSec, subsGained:newSubsGained };
+      });
+    }, 1000);
+    return () => clearInterval(streamRef.current);
+  }, [isLive, streamData?.category, monetised, subs]);
+
+  const startStream = (category, title) => {
+    setShowStreamSetup(false);
+    setIsLive(true);
+    isLiveRef.current = true;
+    setStreamData({ title, category, viewers:0, peakViewers:0, duration:0, earnings:0, subsGained:0, streamSuperchats:0 });
+    setChatMessages([{ id:Date.now(), text:"Stream started! Welcome everyone 👋", isSystem:true }]);
+    setTab("live");
+  };
+
+  const endStream = () => {
+    clearInterval(streamRef.current);
+    setIsLive(false);
+    isLiveRef.current = false;
+    const sd = streamData;
+    if (sd) {
+      addNotif(`🔴 Stream ended! +${fmt(sd.subsGained)} subs, ${fmtMoney(sd.earnings)} earned`, "milestone");
+      // Save as VOD
+      const vod = {
+        id:Date.now(), title:sd.title, thumbnail:"📺",
+        category:sd.category, views:Math.floor(sd.peakViewers*sd.duration*0.01),
+        likes:Math.floor(sd.peakViewers*2), comments:Math.floor(sd.peakViewers*0.3),
+        revenue:sd.earnings, viral:false, flopped:false, subsGained:sd.subsGained,
+        uploadedAt:Date.now(), duration:sd.duration, isVod:true,
+      };
+      setVideos(v => [vod,...v].slice(0,24));
+      setUploads(u => u+1);
+    }
+    setStreamData(null);
+    setChatMessages([]);
+  };
 
   if (banned) return <BanScreen subs={subs} onRestart={handleRestart} />;
 
@@ -1230,6 +1800,7 @@ export default function YouTubeSimulator() {
       `}</style>
 
       <Notifs notifs={notifs} />
+      <SuperchatToast superchats={superchats} />
       {showDevPassword && (
         <Modal onClose={() => setShowDevPassword(false)}>
           <div style={{ textAlign:"center" }}>
@@ -1265,7 +1836,11 @@ export default function YouTubeSimulator() {
       {showMonetiseModal && !suspended && <MonetiseModal suspicion={suspicion} onApply={() => setMonetised(true)} onClose={() => setShowMonetiseModal(false)} />}
       {showVerifiedModal && !suspended && <VerifiedModal suspicion={suspicion} everSuspended={everSuspended} onApply={() => setVerified(true)} onClose={() => setShowVerifiedModal(false)} />}
       {showCategoryPicker && !suspended && <CategoryPickerModal onSelect={doUpload} onClose={() => setShowCategoryPicker(false)} />}
+      {showStreamSetup && <StreamCategoryModal onSelect={startStream} onClose={() => setShowStreamSetup(false)} />}
       {showBuySubsModal && <BuySubsModal money={money} monetised={monetised} onBuy={handleBuySubs} onClose={() => setShowBuySubsModal(false)} />}
+      {isLive && tab !== "live" && (
+        <LiveChatMini messages={chatMessages} viewers={streamData?.viewers||0} streamTitle={streamData?.title||""} streamCat={STREAM_CATEGORIES.find(c=>c.id===streamData?.category)?.icon||"🔴"} onGoToLive={() => setTab("live")} />
+      )}
 
       {/* Header */}
       <div style={{ background:"#111", borderBottom:"1px solid #1e1e1e", padding:"12px 20px", display:"flex", alignItems:"center", gap:12, position:"sticky", top:0, zIndex:90 }}>
@@ -1276,6 +1851,15 @@ export default function YouTubeSimulator() {
           <span style={{ color:"#aaa" }}>💰 <span style={{ color: monetised?"#4caf50":"#555", fontSize:13 }}>{monetised?fmtMoney(money):"—"}</span></span>
           <span style={{ color:"#aaa" }}>👁 <span style={{ color:"#fff", fontSize:13 }}>{fmt(totalViews)}</span></span>
         </div>
+        {isLive && (
+          <button onClick={() => setTab("live")} style={{
+            background:"#ff000022", border:"1px solid #ff444444", borderRadius:8, padding:"6px 14px",
+            color:"#ff4444", fontSize:11, fontWeight:800, cursor:"pointer", display:"flex", alignItems:"center", gap:5,
+          }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:"#ff0000", animation:"pulse 1s infinite" }} />
+            LIVE
+          </button>
+        )}
         <div style={{ display:"flex", alignItems:"center", gap:6, background:milestone.color+"22", border:`1px solid ${milestone.color}44`, borderRadius:20, padding:"4px 10px" }}>
           <span style={{ fontSize:11, fontWeight:700, color:milestone.color }}>{milestone.badge} {milestone.label}</span>
           {verified && <span title="Verified">✅</span>}
@@ -1298,7 +1882,7 @@ export default function YouTubeSimulator() {
 
       {/* Tabs */}
       <div style={{ background:"#111", borderBottom:"1px solid #161616", display:"flex", padding:"0 20px" }}>
-        {[["studio","🎬 Studio"],["videos","📺 Videos"],["shop","🛒 Shop"],["stats","📊 Stats"], ...(devUnlocked?[["dev","🛠 Dev"]]:[])]  .map(([id,label]) => (
+        {[["studio","🎬 Studio"],["videos","📺 Videos"],["shop","🛒 Shop"],["stats","📊 Stats"],["live", isLive?"🔴 Live":"📡 Live"], ...(devUnlocked?[["dev","🛠 Dev"]]:[])]  .map(([id,label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             background:"none", border:"none", color:tab===id?"#ff0000":"#666",
             padding:"11px 15px", fontSize:12, fontWeight:700, cursor:"pointer",
@@ -1370,9 +1954,9 @@ export default function YouTubeSimulator() {
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10 }}>
               {[
                 { label:"Total Earned", value:monetised?fmtMoney(totalEarned):"—", icon:"💵", color:monetised?"#4caf50":"#333" },
+                { label:"Superchats",   value:monetised?fmtMoney(totalSuperchats):"—", icon:"💬", color:monetised?"#b71c1c":"#333" },
                 { label:"Viral Videos", value:viralCount, icon:"🔥", color:"#ff6b6b" },
-                { label:"Flopped", value:flopCount, icon:"💀", color:"#555" },
-                { label:"Total Videos", value:videos.length, icon:"📺", color:"#4a9eff" },
+                { label:"Flopped",      value:flopCount,  icon:"💀", color:"#555" },
               ].map(s => (
                 <div key={s.label} style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:12, padding:12, textAlign:"center" }}>
                   <div style={{ fontSize:20, marginBottom:4 }}>{s.icon}</div>
@@ -1480,6 +2064,7 @@ export default function YouTubeSimulator() {
                   ["Videos", uploads],
                   ["Viral Hits", viralCount],
                   ["Flopped", flopCount],
+                  ["Superchats", monetised?fmtMoney(totalSuperchats):"—"],
                   ["Monetised", monetised?"Yes ✓":"No"],
                   ["Verified", verified?"Yes ✅":"No"],
                   ["Balance", monetised?fmtMoney(money):"—"],
@@ -1504,6 +2089,19 @@ export default function YouTubeSimulator() {
                   </div>}
             </div>
           </div>
+        )}
+
+        {/* ── LIVE ── */}
+        {tab==="live" && (
+          <LiveTab
+            isLive={isLive}
+            streamData={streamData}
+            chatMessages={chatMessages}
+            onGoLive={() => setShowStreamSetup(true)}
+            onEndStream={endStream}
+            monetised={monetised}
+            subs={subs}
+          />
         )}
 
         {/* ── DEV PANEL ── */}
@@ -1548,6 +2146,7 @@ export default function YouTubeSimulator() {
                 <div style={{ fontSize:11, color:"#888", marginBottom:6, fontWeight:700 }}>TRIGGER EVENTS</div>
                 <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                   {[
+                    { label:"💬 Superchat",  action:() => { const tier=SUPERCHAT_TIERS[Math.floor(Math.random()*4)+2]; const id=Date.now(); const username=SUPERCHAT_USERNAMES[Math.floor(Math.random()*SUPERCHAT_USERNAMES.length)]; const message=SUPERCHAT_MESSAGES[Math.floor(Math.random()*SUPERCHAT_MESSAGES.length)]; setSuperchats(s=>[...s,{id,username,message,tier}]); setMoney(m=>m+tier.amount); setTimeout(()=>setSuperchats(s=>s.filter(sc=>sc.id!==id)),4000); }},
                     { label:"💀 Flop",      action:() => setFlopEvent({ views:Math.floor(Math.random()*50+5) }) },
                     { label:"🔥 Viral",     action:() => setViralEvent({ views:Math.floor(subs*(5+Math.random()*10)), category:"🎮 Gaming" }) },
                     { label:"🎵 Copyright", action:() => { setCopyrightEvent({ lost:999.99, song:COPYRIGHT_SONGS[0] }); copyrightActiveRef.current=true; }},
