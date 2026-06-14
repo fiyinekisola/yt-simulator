@@ -1,6 +1,3 @@
-tiiny.host
-youtube-simulator.jsx
-JAVASCRIPT
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ── Constants ──────────────────────────────────────────────────────────────
